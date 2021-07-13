@@ -1,20 +1,13 @@
 import ow from 'ow';
-import { owCoin } from '../../coin/ow.types';
-import { owBig, owStrictObject } from '../../ow.types';
+import { owCoin, owOptionalCoin } from '../../coin/ow.types';
+import { owBig, owStrictObject, owOptionalStrictObject } from '../../ow.types';
 import { VoteOption } from './gov/MsgVote';
 import { isMsgProposalContent } from './gov/IMsgProposalContent';
+import { owLong } from './gov/ow.types';
 
 const voteOptionValidator = (val: number) => ({
     validator: Object.values(VoteOption).includes(val as any),
     message: (label: string) => `Expected ${label} to be one of the Vote options, got \`${val}\``,
-});
-
-export const owVoteOption = () => ow.number.validate(voteOptionValidator);
-
-export const owMsgSendOptions = owStrictObject().exactShape({
-    fromAddress: ow.string,
-    toAddress: ow.string,
-    amount: owCoin(),
 });
 
 const proposalContentValidatorFn = (val: object) => ({
@@ -23,6 +16,41 @@ const proposalContentValidatorFn = (val: object) => ({
 });
 
 const owContent = () => owStrictObject().validate(proposalContentValidatorFn);
+
+export const owVoteOption = () => ow.number.validate(voteOptionValidator);
+
+export const owMsgSendOptions = owStrictObject().exactShape({
+    fromAddress: ow.string,
+    toAddress: ow.string,
+    amount: owCoin(),
+});
+export const v2 = {
+    owMsgSendOptions: owStrictObject().exactShape({
+        fromAddress: ow.string,
+        toAddress: ow.string,
+        amount: ow.array.ofType(owCoin()),
+    }),
+    owMsgFundCommunityPoolOptions: owStrictObject().exactShape({
+        depositor: ow.string,
+        amount: ow.array.ofType(owCoin()),
+    }),
+    owMsgDepositOptions: owStrictObject().exactShape({
+        depositor: ow.string,
+        proposalId: owBig(),
+        amount: ow.array.ofType(owCoin()),
+    }),
+    owCommunityPoolSpendProposalOptions: owStrictObject().exactShape({
+        title: ow.string,
+        description: ow.string,
+        recipient: ow.string,
+        amount: ow.array.ofType(owCoin()),
+    }),
+    owMsgSubmitProposalOptions: owStrictObject().exactShape({
+        proposer: ow.string,
+        initialDeposit: ow.array.ofType(owCoin()),
+        content: owContent(),
+    }),
+};
 
 export const owMsgSubmitProposalOptions = owStrictObject().exactShape({
     proposer: ow.string,
@@ -177,4 +205,56 @@ export const owMsgBurnNFTOptions = owStrictObject().exactShape({
     id: owNFTId,
     denomId: owNFTId,
     sender: ow.string,
+});
+
+/**
+ * IBC ow types
+ */
+
+const owIBCHeightOptional = () =>
+    owOptionalStrictObject().exactShape({
+        revisionHeight: owLong(),
+        revisionNumber: owLong(),
+    });
+
+const owGoogleProtoAnyOptional = () =>
+    owOptionalStrictObject().exactShape({
+        type_url: ow.optional.string,
+        value: ow.optional.uint8Array,
+    });
+
+export const owMsgTransferIBCOptions = owStrictObject().exactShape({
+    sourcePort: ow.string,
+    sourceChannel: ow.string,
+    token: owOptionalCoin(),
+    sender: ow.string,
+    receiver: ow.string,
+    timeoutHeight: owIBCHeightOptional(),
+    timeoutTimestamp: owLong(),
+});
+
+export const owMsgCreateClientOptions = owStrictObject().exactShape({
+    signer: ow.string,
+    clientState: ow.optional.any(owGoogleProtoAnyOptional(), ow.null),
+    consensusState: ow.optional.any(owGoogleProtoAnyOptional(), ow.null),
+});
+
+export const owMsgUpdateClientOptions = owStrictObject().exactShape({
+    signer: ow.string,
+    clientId: ow.string,
+    header: ow.optional.any(owGoogleProtoAnyOptional(), ow.optional.null),
+});
+
+export const owMsgUpgradeClientOptions = owStrictObject().exactShape({
+    clientId: ow.string,
+    clientState: ow.optional.any(owGoogleProtoAnyOptional(), ow.optional.null),
+    consensusState: ow.optional.any(owGoogleProtoAnyOptional(), ow.optional.null),
+    proofUpgradeClient: ow.uint8Array,
+    proofUpgradeConsensusState: ow.uint8Array,
+    signer: ow.string,
+});
+export const owMsgSubmitMisbehaviourOptions = owStrictObject().exactShape({
+    clientId: ow.string,
+    misbehaviour: ow.optional.any(owGoogleProtoAnyOptional(), ow.optional.null),
+    signer: ow.string,
 });

@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import 'mocha';
 import { expect } from 'chai';
 import Big from 'big.js';
@@ -7,7 +8,7 @@ import { Msg } from '../../../cosmos/v1beta1/types/msg';
 import { Secp256k1KeyPair } from '../../../keypair/secp256k1';
 import { Bytes } from '../../../utils/bytes/bytes';
 import { Units } from '../../../coin/coin';
-import { CroSDK } from '../../../core/cro';
+import { CroSDK, CroNetwork } from '../../../core/cro';
 
 const cro = CroSDK({
     network: {
@@ -29,6 +30,62 @@ const cro = CroSDK({
 });
 
 describe('Testing MsgSend', function () {
+    describe('fromCosmosJSON', function () {
+        it('should throw Error if the JSON is not a MsgSend', function () {
+            const json =
+                '{ "@type": "/cosmos.bank.v1beta1.MsgCreateValidator", "amount": [{ "denom": "basetcro", "amount": "3478499933290496" }], "from_address": "tcro1x07kkkepfj2hl8etlcuqhej7jj6myqrp48y4hg", "to_address": "tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3" }';
+            expect(() => cro.bank.MsgSend.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected /cosmos.bank.v1beta1.MsgSend but got /cosmos.bank.v1beta1.MsgCreateValidator',
+            );
+        });
+        it('should throw Error when the from field is missing', function () {
+            const json =
+                '{ "@type": "/cosmos.bank.v1beta1.MsgSend", "amount": [{ "denom": "basetcro", "amount": "3478499933290496" }], "to_address": "tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3" }';
+            expect(() => cro.bank.MsgSend.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `fromAddress` to be of type `string` but received type `undefined` in object `options`',
+            );
+        });
+        it('should throw Error when the to field is missing', function () {
+            const json =
+                '{ "@type": "/cosmos.bank.v1beta1.MsgSend", "amount": [{ "denom": "basetcro", "amount": "3478499933290496" }], "from_address": "tcro1x07kkkepfj2hl8etlcuqhej7jj6myqrp48y4hg" }';
+            expect(() => cro.bank.MsgSend.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `toAddress` to be of type `string` but received type `undefined` in object `options`',
+            );
+        });
+        it('should throw Error when the amount field is missing', function () {
+            const json =
+                '{ "@type": "/cosmos.bank.v1beta1.MsgSend", "from_address": "tcro1x07kkkepfj2hl8etlcuqhej7jj6myqrp48y4hg" , "to_address": "tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3" }';
+            expect(() => cro.bank.MsgSend.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Invalid amount in the Msg.',
+            );
+        });
+        it('should throw on invalid `fromAddress`', function () {
+            const json =
+                '{ "@type": "/cosmos.bank.v1beta1.MsgSend", "amount": [{ "denom": "basetcro", "amount": "3478499933290496" }], "from_address": "cro1pndm4ywdf4qtmupa0fqe75krmqed2znjyj6x8f", "to_address": "tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3" }';
+
+            expect(() => cro.bank.MsgSend.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Provided `fromAddress` does not match network selected',
+            );
+        });
+        it('should throw on invalid `toAddress`', function () {
+            const json =
+                '{ "@type": "/cosmos.bank.v1beta1.MsgSend", "amount": [{ "denom": "basetcro", "amount": "3478499933290496" }], "from_address": "tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3", "to_address": "cro1pndm4ywdf4qtmupa0fqe75krmqed2znjyj6x8f" }';
+
+            expect(() => cro.bank.MsgSend.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Provided `toAddress` does not match network selected',
+            );
+        });
+        it('should return the MsgSend corresponding to the JSON', function () {
+            const json =
+                '{ "@type": "/cosmos.bank.v1beta1.MsgSend", "amount": [{ "denom": "basetcro", "amount": "3478499933290496" }], "from_address": "tcro1x07kkkepfj2hl8etlcuqhej7jj6myqrp48y4hg", "to_address": "tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3" }';
+            const msgSend = cro.bank.MsgSend.fromCosmosMsgJSON(json, CroNetwork.Testnet);
+            expect(msgSend.fromAddress).to.eql('tcro1x07kkkepfj2hl8etlcuqhej7jj6myqrp48y4hg');
+            expect(msgSend.toAddress).to.eql('tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3');
+            expect(msgSend.amount.toCosmosCoin().amount).to.eql('3478499933290496');
+            expect(msgSend.amount.toCosmosCoin().denom).to.eql('basetcro');
+        });
+    });
+
     fuzzyDescribe('should throw Error when options is invalid', function (fuzzy) {
         const anyValidOptions = {
             fromAddress: 'tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3',

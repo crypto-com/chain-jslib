@@ -10,6 +10,8 @@ import {
     setupBankExtension,
     setupDistributionExtension,
     setupStakingExtension,
+    IbcExtension,
+    setupIbcExtension,
 } from '@cosmjs/stargate';
 import { Account } from '@cosmjs/stargate/build/accounts';
 import { Coin } from '@cosmjs/stargate/build/codec/cosmos/base/v1beta1/coin';
@@ -20,7 +22,9 @@ import { InitConfigurations } from '../core/cro';
 import { owUrl } from './ow.types';
 
 export interface ICroClient {
-    query(): (QueryClient & AuthExtension & BankExtension & DistributionExtension & StakingExtension) | undefined;
+    query():
+        | (QueryClient & AuthExtension & BankExtension & DistributionExtension & StakingExtension & IbcExtension)
+        | undefined;
     getChainId(): Promise<string>;
     getHeight(): Promise<number>;
     getAccount(searchAddress: string): Promise<Account | null>;
@@ -43,7 +47,7 @@ export const croClient = function (config: InitConfigurations) {
         readonly txClient: StargateClient;
 
         readonly queryClient:
-            | (QueryClient & AuthExtension & BankExtension & DistributionExtension & StakingExtension)
+            | (QueryClient & AuthExtension & BankExtension & DistributionExtension & StakingExtension & IbcExtension)
             | undefined;
 
         private constructor(tmClient: Tendermint34Client, txClient: StargateClient) {
@@ -55,6 +59,7 @@ export const croClient = function (config: InitConfigurations) {
                 setupBankExtension,
                 setupStakingExtension,
                 setupDistributionExtension,
+                setupIbcExtension,
             );
 
             this.baseDenom = config.network.coin.baseDenom;
@@ -73,7 +78,7 @@ export const croClient = function (config: InitConfigurations) {
         }
 
         public query():
-            | (QueryClient & AuthExtension & BankExtension & DistributionExtension & StakingExtension)
+            | (QueryClient & AuthExtension & BankExtension & DistributionExtension & StakingExtension & IbcExtension)
             | undefined {
             return this.queryClient;
         }

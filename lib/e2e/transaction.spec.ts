@@ -1,3 +1,4 @@
+/* eslint-disable */
 import 'mocha';
 import Big from 'big.js';
 import { expect } from 'chai';
@@ -57,6 +58,73 @@ const env = {
 };
 
 describe('e2e test suite', function () {
+    describe('`v2` message types', function () {
+        it('[BANK] creates a MsgSend Type Transaction and Broadcasts it.', async function () {
+            const hdKey = HDKey.fromMnemonic(env.mnemonic.communityAccount);
+            const hdKey2 = HDKey.fromMnemonic(env.mnemonic.reserveAccount);
+            const hdKey3 = HDKey.fromMnemonic(env.mnemonic.randomEmptyAccount);
+            const privKey = hdKey.derivePrivKey(`m/44'/${customNetwork.bip44Path.coinType}'/0'/0/0`);
+            const privKey2 = hdKey2.derivePrivKey(`m/44'/${customNetwork.bip44Path.coinType}'/0'/0/0`);
+            const randomPrivKey = hdKey3.derivePrivKey(`m/44'/${customNetwork.bip44Path.coinType}'/0'/0/0`);
+            const keyPair = Secp256k1KeyPair.fromPrivKey(privKey);
+            const keyPair2 = Secp256k1KeyPair.fromPrivKey(privKey2);
+            const randomKeyPair = Secp256k1KeyPair.fromPrivKey(randomPrivKey);
+
+            const cro = CroSDK({ network: customNetwork });
+            const rawTx = new cro.RawTransaction();
+            const address1 = new cro.Address(keyPair.getPubKey());
+            const address2 = new cro.Address(keyPair2.getPubKey());
+            const randomAddress = new cro.Address(randomKeyPair.getPubKey());
+            const client = await cro.CroClient.connect();
+
+            const msgSend1 = new cro.v2.bank.MsgSendV2({
+                fromAddress: address1.account(),
+                toAddress: randomAddress.account(),
+                amount: [new cro.Coin('100000', Units.BASE)],
+            });
+
+            const msgSend2 = new cro.v2.bank.MsgSendV2({
+                fromAddress: address2.account(),
+                toAddress: address1.account(),
+                amount: [new cro.Coin('20000', Units.BASE)],
+            });
+
+            const account1 = await client.getAccount(address1.account());
+            const account2 = await client.getAccount(address2.account());
+
+            expect(account1).to.be.not.null;
+            expect(account2).to.be.not.null;
+
+            const signableTx = rawTx
+                .appendMessage(msgSend1)
+                .appendMessage(msgSend2)
+                .addSigner({
+                    publicKey: keyPair.getPubKey(),
+                    accountNumber: new Big(account1!.accountNumber),
+                    accountSequence: new Big(account1!.sequence),
+                })
+                .addSigner({
+                    publicKey: keyPair2.getPubKey(),
+                    accountNumber: new Big(account2!.accountNumber),
+                    accountSequence: new Big(account2!.sequence),
+                })
+                .toSignable();
+
+            const signedTx = signableTx
+                .setSignature(0, keyPair.sign(signableTx.toSignDocumentHash(0)))
+                .setSignature(1, keyPair2.sign(signableTx.toSignDocumentHash(1)))
+                .toSigned();
+
+            expect(msgSend1.fromAddress).to.eq(account1!.address);
+            expect(msgSend1.toAddress).to.eq(randomAddress.account());
+            const broadcastResult = await client.broadcastTx(signedTx.encode().toUint8Array());
+            assertIsBroadcastTxSuccess(broadcastResult);
+
+            const { transactionHash } = broadcastResult;
+            expect(transactionHash).to.match(/^[0-9A-F]{64}$/);
+        });
+    })
+
     it('[BANK] creates a MsgSend type Transaction Signed by Legacy Amino JSON mode and Broadcasts it', async function () {
         const hdKey = HDKey.fromMnemonic(env.mnemonic.communityAccount);
         const hdKey2 = HDKey.fromMnemonic(env.mnemonic.reserveAccount);
@@ -178,6 +246,58 @@ describe('e2e test suite', function () {
         const signedTx = signableTx
             .setSignature(0, keyPair.sign(signableTx.toSignDocumentHash(0)))
             .setSignature(1, keyPair2.sign(signableTx.toSignDocumentHash(1)))
+            .toSigned();
+
+        expect(msgSend1.fromAddress).to.eq(account1!.address);
+        expect(msgSend1.toAddress).to.eq(randomAddress.account());
+        const broadcastResult = await client.broadcastTx(signedTx.encode().toUint8Array());
+        assertIsBroadcastTxSuccess(broadcastResult);
+
+        const { transactionHash } = broadcastResult;
+        expect(transactionHash).to.match(/^[0-9A-F]{64}$/);
+    });
+    it('[BANK] creates a MsgSend Type Transaction with `Fee` amount and Broadcasts it.', async function () {
+        const hdKey = HDKey.fromMnemonic(env.mnemonic.communityAccount);
+        const hdKey2 = HDKey.fromMnemonic(env.mnemonic.reserveAccount);
+        const hdKey3 = HDKey.fromMnemonic(env.mnemonic.randomEmptyAccount);
+        const privKey = hdKey.derivePrivKey(`m/44'/${customNetwork.bip44Path.coinType}'/0'/0/0`);
+        const privKey2 = hdKey2.derivePrivKey(`m/44'/${customNetwork.bip44Path.coinType}'/0'/0/0`);
+        const randomPrivKey = hdKey3.derivePrivKey(`m/44'/${customNetwork.bip44Path.coinType}'/0'/0/0`);
+        const keyPair = Secp256k1KeyPair.fromPrivKey(privKey);
+        const keyPair2 = Secp256k1KeyPair.fromPrivKey(privKey2);
+        const randomKeyPair = Secp256k1KeyPair.fromPrivKey(randomPrivKey);
+
+        const cro = CroSDK({ network: customNetwork });
+        const rawTx = new cro.RawTransaction();
+        const address1 = new cro.Address(keyPair.getPubKey());
+        const address2 = new cro.Address(keyPair2.getPubKey());
+        const randomAddress = new cro.Address(randomKeyPair.getPubKey());
+        const client = await cro.CroClient.connect();
+
+        const msgSend1 = new cro.bank.MsgSend({
+            fromAddress: address1.account(),
+            toAddress: randomAddress.account(),
+            amount: new cro.Coin('100000', Units.BASE),
+        });
+
+        const account1 = await client.getAccount(address1.account());
+        const account2 = await client.getAccount(address2.account());
+
+        expect(account1).to.be.not.null;
+        expect(account2).to.be.not.null;
+
+        const signableTx = rawTx
+            .appendMessage(msgSend1)
+            .addSigner({
+                publicKey: keyPair.getPubKey(),
+                accountNumber: new Big(account1!.accountNumber),
+                accountSequence: new Big(account1!.sequence),
+            })
+            .setFee(cro.Coin.fromCRO("0.002"))
+            .toSignable();
+
+        const signedTx = signableTx
+            .setSignature(0, keyPair.sign(signableTx.toSignDocumentHash(0)))
             .toSigned();
 
         expect(msgSend1.fromAddress).to.eq(account1!.address);

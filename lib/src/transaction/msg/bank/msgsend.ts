@@ -1,12 +1,26 @@
+/* eslint-disable camelcase */
 import ow from 'ow';
 import { Msg } from '../../../cosmos/v1beta1/types/msg';
 import { ICoin } from '../../../coin/coin';
 import { owMsgSendOptions } from '../ow.types';
-import { InitConfigurations } from '../../../core/cro';
+import { InitConfigurations, CroSDK } from '../../../core/cro';
 import { AddressType, validateAddress } from '../../../utils/address';
 import { CosmosMsg } from '../cosmosMsg';
 import { COSMOS_MSG_TYPEURL } from '../../common/constants/typeurl';
 import * as legacyAmino from '../../../cosmos/amino';
+import { Network } from '../../../network/network';
+
+export interface MsgSendRaw {
+    '@type': string;
+    amount: Amount[];
+    from_address: string;
+    to_address: string;
+}
+
+export interface Amount {
+    denom: string;
+    amount: string;
+}
 
 export const msgSend = function (config: InitConfigurations) {
     return class MsgSend implements CosmosMsg {
@@ -30,6 +44,29 @@ export const msgSend = function (config: InitConfigurations) {
             this.amount = options.amount;
 
             this.validateAddresses();
+        }
+
+        /**
+         * Returns an instance of MsgSend
+         * @param {string} msgJsonStr
+         * @param {Network} network
+         * @returns {MsgSend}
+         */
+        public static fromCosmosMsgJSON(msgJsonStr: string, network: Network): MsgSend {
+            const parsedMsg = JSON.parse(msgJsonStr) as MsgSendRaw;
+            const cro = CroSDK({ network });
+            if (parsedMsg['@type'] !== COSMOS_MSG_TYPEURL.MsgSend) {
+                throw new Error(`Expected ${COSMOS_MSG_TYPEURL.MsgSend} but got ${parsedMsg['@type']}`);
+            }
+            if (!parsedMsg.amount || parsedMsg.amount.length !== 1) {
+                throw new Error('Invalid amount in the Msg.');
+            }
+
+            return new MsgSend({
+                fromAddress: parsedMsg.from_address,
+                toAddress: parsedMsg.to_address,
+                amount: cro.Coin.fromCustomAmountDenom(parsedMsg.amount[0].amount, parsedMsg.amount[0].denom),
+            });
         }
 
         /**

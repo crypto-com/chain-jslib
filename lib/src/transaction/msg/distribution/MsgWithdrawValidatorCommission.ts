@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import ow from 'ow';
 import { InitConfigurations } from '../../../core/cro';
 import { CosmosMsg } from '../cosmosMsg';
@@ -6,6 +7,7 @@ import { AddressType, validateAddress } from '../../../utils/address';
 import { owMsgWithdrawValidatorCommissionOptions } from '../ow.types';
 import { COSMOS_MSG_TYPEURL } from '../../common/constants/typeurl';
 import * as legacyAmino from '../../../cosmos/amino';
+import { Network } from '../../../network/network';
 
 export const msgWithdrawValidatorCommission = function (config: InitConfigurations) {
     return class MsgWithdrawValidatorCommission implements CosmosMsg {
@@ -43,6 +45,25 @@ export const msgWithdrawValidatorCommission = function (config: InitConfiguratio
         }
 
         /**
+         * * Returns an instance of MsgWithdrawValidatorCommission
+         * @param {string} msgJsonStr
+         * @param {Network} network
+         * @returns {MsgWithdrawValidatorCommission}
+         */
+        public static fromCosmosMsgJSON(msgJsonStr: string, _network: Network): MsgWithdrawValidatorCommission {
+            const parsedMsg = JSON.parse(msgJsonStr) as MsgWithdrawValidatorCommissionRaw;
+            if (parsedMsg['@type'] !== COSMOS_MSG_TYPEURL.MsgWithdrawValidatorCommission) {
+                throw new Error(
+                    `Expected ${COSMOS_MSG_TYPEURL.MsgWithdrawValidatorCommission} but got ${parsedMsg['@type']}`,
+                );
+            }
+
+            return new MsgWithdrawValidatorCommission({
+                validatorAddress: parsedMsg.validator_address,
+            });
+        }
+
+        /**
          * Validate address
          * @throws {Error} when the validatorAddress is invalid
          */
@@ -63,3 +84,8 @@ export const msgWithdrawValidatorCommission = function (config: InitConfiguratio
 export type MsgWithdrawValidatorCommissionOptions = {
     validatorAddress: string;
 };
+
+interface MsgWithdrawValidatorCommissionRaw {
+    '@type': string;
+    validator_address: string;
+}

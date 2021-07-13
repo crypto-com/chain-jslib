@@ -151,6 +151,97 @@ const queryResult = await client.query().<module>.<operation>
 // example client.query().bank.allBalances(<address>)
 ```
 
+### 1.6. Transaction Decoding/Encoding support
+Our SDK supports transaction decoding from hex-encoded strings.
+
+```typescript
+import { TxDecoder } from './txDecoder';
+const txDecoder = new TxDecoder();
+const decodedTx = txDecoder.fromHex('0a9b010a8c010a1c2f636f736d6f732e62616e6b2e763162657461312e4d736753656e64126c0a2b7463726f31667a63727a61336a3466323637376a667578756c6b6733337a36383532717371733868783530122b7463726f31667a63727a61336a3466323637376a667578756c6b6733337a363835327173717338687835301a100a08626173657463726f120431303030120a616d696e6f2074657374126b0a500a460a1f2f636f736d6f732e63727970746f2e736563703235366b312e5075624b657912230a210223c9395d41013e6470c8d27da8b75850554faada3fe3e812660cbdf4534a85d712040a020801180112170a110a08626173657463726f1205313030303010a08d061a4031f4c489b98decb367972790747139c7706f54aafd9e5a3a5ada4f72c7b017646f1eb5cb1bdf518603d5d8991466a13c3f68844dcd9b168b5d4ca0cb5ea514bc');
+
+//Prints decoded in Cosmos compatible JSON format
+console.log(decodedTx.toCosmosJSON())
+
+// Prints
+// "{"tx":{"body":{"messages":[{"@type":"/cosmos.bank.v1beta1.MsgSend","amount":[{"denom":"basetcro","amount":"1000"}],"from_address":"tcro1fzcrza3j4f2677jfuxulkg33z6852qsqs8hx50","to_address":"tcro1fzcrza3j4f2677jfuxulkg33z6852qsqs8hx50"}],"memo":"amino test","timeout_height":"0","extension_options":[],"non_critical_extension_options":[]},"auth_info":{"signer_infos":[{"public_key":{"@type":"/cosmos.crypto.secp256k1.PubKey","key":"AiPJOV1BAT5kcMjSfai3WFBVT6raP+PoEmYMvfRTSoXX"},"mode_info":{"single":{"mode":"SIGN_MODE_DIRECT"}},"sequence":"1"}],"fee":{"amount":[{"denom":"basetcro","amount":"10000"}],"gas_limit":"100000","payer":"","granter":""}},"signatures":["MfTEibmN7LNnlyeQdHE5x3BvVKr9nlo6WtpPcsewF2RvHrXLG99RhgPV2JkUZqE8P2iETc2bFotdTKDLXqUUvA=="]}}"
+
+```
+
+### 1.7. Offline Signing 
+Our SDK supports offline signing for secure external transaction management.
+
+#### Flow:
+Machine 1(Online):
+1. Build a `RawTransaction` instance. 
+2. Export Cosmos compatible JSON by using `.toCosmosJSON()`. 
+3. Export Signer(s) list using `.exportSignerAccounts()`. 
+
+Machine 2 (Offline/Online):
+1. Create a `SignableTransaction` instance from a stringified cosmos compatible JSON string.
+2. You can import Signer(s) list using two methods:
+   1. call `importSignerAccounts()` on the instance above **OR**
+   2. (Advance usage) call `setSignerAccountNumberAtIndex()` to manually set AccountNumber at a specified index.
+3. You can choose to export the signed hex encoded transaction and broadcast it manually
+
+Eg:
+```typescript
+// import respective classes
+// ....
+
+/* Machine 1: */
+const rawTx = new cro.RawTransaction();
+// .... Do rest operations here
+const exportUnsignedCosmosJSON = rawTx.toCosmosJSON();
+const exportSignerInfoToJSON = rawTx.exportSignerAccounts();
+
+/* Machine 2: */
+const signerAccountsOptional: SignerAccount[] = [{
+    publicKey: <Bytes>;
+    accountNumber: new Big(0);
+    signMode: SIGN_MODE.DIRECT;
+}];
+
+const signableTx = new SignableTransaction({
+                rawTxJSON: exportUnsignedCosmosJSON,
+                network: <CroNetwork>,
+                signerAccounts: signerAccountsOptional,
+            });
+
+/* `Import SignerAccounts` starts */
+
+// METHOD 1: using importSignerAccounts()
+signableTx.importSignerAccounts([
+  // SignerAccount 1
+  {
+    publicKey: Bytes.fromHexString('hexString');
+    accountNumber: new Big(0);
+    signMode: SIGN_MODE.DIRECT;
+  },
+  // SignerAccount 2
+  {
+    publicKey: Bytes.fromUint8Array(<Uint8>);
+    accountNumber: new Big(2);
+    signMode: SIGN_MODE.DIRECT;
+  }
+]);
+
+// METHOD 2 (For Advance Users): using setSignerAccountNumberAtIndex()
+const signerInfoListINDEX: number = 1;
+const newAccountNumber: Big = new Big(1);
+signableTx.setSignerAccountNumberAtIndex(signerInfoListINDEX, newAccountNumber);
+
+/* `Import SignerAccounts` ends */
+
+// .... Do rest operations here on SignableTransaction
+
+const signedTx = signableTx.toSigned();
+
+console.log(signedTx.getHexEncoded());
+// 0aa4010a8c010a1c2f636f736d6f732e62616e6b2e763162657461312e4d736753656e64126c0a2b7463726f313635747a63726832796c3833673871657178756567326735677a6775353779336665336b6333122b7463726f313635747a63726832796c3833673871657178756567326735677a6775353779336665336b63331a100a08626173657463726f120431323130120f48656c6c6f2054657374204d656d6f1896ef14126a0a500a460a1f2f636f736d6f732e63727970746f2e736563703235366b312e5075624b657912230a2103c3d281a28592adce81bee3094f00eae26932cbc682fba239b90f47dac9fe703612040a020801180d12160a100a08626173657463726f12043635303010c08b111a40fe9b30f29bb9a83df3685f5bf8b7e6c34bae9ee8ba93115af4136289354c5bf947698ef3a3c0a1f6092ba7a2069616c436f4bcf6f3ecef11b92ad4d319ec0347
+
+// Note that the result of signedTx.getHexEncoded() can be directly broadcasted to the network as a raw tx
+
+```
 
 ## 2. Cosmos Protobuf Definitions
 

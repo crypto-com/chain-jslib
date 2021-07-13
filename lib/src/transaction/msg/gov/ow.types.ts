@@ -54,7 +54,7 @@ export const owOptionalTimestamp = () =>
 export const owSoftwareUpgradeProposalOptions = owStrictObject().exactShape({
     title: ow.string,
     description: ow.string,
-    plan: ow.object.exactShape({
+    plan: ow.optional.object.exactShape({
         name: ow.string,
         time: owOptionalTimestamp(),
         height: owLong(),

@@ -3,7 +3,7 @@
 // Copyright © 2020 Simon Warta (licensed under the Apache License, Version 2.0)
 // Modifications Copyright (c) 2018 - 2020, Foris Limited (licensed under the Apache License, Version 2.0)
 import protobuf from 'protobufjs';
-import { cosmos, google, chainmain } from '../codec';
+import { cosmos, google, chainmain, ibc } from '../codec';
 
 export const typeUrlMappings: {
     [key: string]: GeneratedType;
@@ -23,6 +23,11 @@ export const typeUrlMappings: {
     '/cosmos.gov.v1beta1.MsgDeposit': cosmos.gov.v1beta1.MsgDeposit,
     '/cosmos.gov.v1beta1.MsgVote': cosmos.gov.v1beta1.MsgVote,
     '/cosmos.gov.v1beta1.MsgSubmitProposal': cosmos.gov.v1beta1.MsgSubmitProposal,
+    '/cosmos.distribution.v1beta1.CommunityPoolSpendProposal': cosmos.distribution.v1beta1.CommunityPoolSpendProposal,
+    '/cosmos.upgrade.v1beta1.CancelSoftwareUpgradeProposal': cosmos.upgrade.v1beta1.CancelSoftwareUpgradeProposal,
+    '/cosmos.upgrade.v1beta1.SoftwareUpgradeProposal': cosmos.upgrade.v1beta1.SoftwareUpgradeProposal,
+    '/cosmos.gov.v1beta1.TextProposal': cosmos.gov.v1beta1.TextProposal,
+    '/cosmos.params.v1beta1.ParameterChangeProposal': cosmos.params.v1beta1.ParameterChangeProposal,
     '/google.protobuf.Any': google.protobuf.Any,
     '/cosmos.distribution.v1beta1.MsgSetWithdrawAddress': cosmos.distribution.v1beta1.MsgSetWithdrawAddress,
     '/cosmos.distribution.v1beta1.MsgFundCommunityPool': cosmos.distribution.v1beta1.MsgFundCommunityPool,
@@ -31,6 +36,11 @@ export const typeUrlMappings: {
     '/chainmain.nft.v1.MsgEditNFT': chainmain.nft.v1.MsgEditNFT,
     '/chainmain.nft.v1.MsgTransferNFT': chainmain.nft.v1.MsgTransferNFT,
     '/chainmain.nft.v1.MsgBurnNFT': chainmain.nft.v1.MsgBurnNFT,
+    '/ibc.applications.transfer.v1.MsgTransfer': ibc.applications.transfer.v1.MsgTransfer,
+    '/ibc.core.client.v1.MsgCreateClient': ibc.core.client.v1.MsgCreateClient,
+    '/ibc.core.client.v1.MsgUpdateClient': ibc.core.client.v1.MsgUpdateClient,
+    '/ibc.core.client.v1.MsgUpgradeClient': ibc.core.client.v1.MsgUpgradeClient,
+    '/ibc.core.client.v1.MsgSubmitMisbehaviour': ibc.core.client.v1.MsgSubmitMisbehaviour,
 };
 
 export interface GeneratedType {

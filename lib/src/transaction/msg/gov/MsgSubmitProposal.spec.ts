@@ -4,7 +4,7 @@ import { expect } from 'chai';
 import Big from 'big.js';
 import { fuzzyDescribe } from '../../../test/mocha-fuzzy/suite';
 import { Units } from '../../../coin/coin';
-import { CroSDK } from '../../../core/cro';
+import { CroSDK, CroNetwork } from '../../../core/cro';
 import { HDKey } from '../../../hdkey/hdkey';
 import { Secp256k1KeyPair } from '../../../keypair/secp256k1';
 import { Network } from '../../../network/network';
@@ -204,5 +204,26 @@ describe('Testing MsgSubmitProposal and its content types', function () {
         });
 
         expect(() => msgSubmitProposalCommunitySpend.toRawAminoMsg()).to.throw('Method not implemented.');
+    });
+    describe('fromCosmosJSON', function () {
+        it('should throw Error if the JSON is not a MsgSubmitProposal', function () {
+            const json =
+                '{ "@type": "/cosmos.bank.v1beta1.MsgCreateValidator", "amount": [{ "denom": "basetcro", "amount": "3478499933290496" }], "from_address": "tcro1x07kkkepfj2hl8etlcuqhej7jj6myqrp48y4hg", "to_address": "tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3" }';
+            expect(() => cro.gov.MsgSubmitProposal.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected /cosmos.gov.v1beta1.MsgSubmitProposal but got /cosmos.bank.v1beta1.MsgCreateValidator',
+            );
+        });
+
+        it('should return the MsgSubmitProposal corresponding to the JSON', function () {
+            const json =
+                '{"@type":"/cosmos.gov.v1beta1.MsgSubmitProposal","initial_deposit":[{"denom":"basetcro","amount":"12000000000"}],"content":{"@type":"/cosmos.params.v1beta1.ParameterChangeProposal","changes":[{"subspace":"staking","key":"MaxValidators","value":"12"}],"title":"Change a param to something more optimized","description":"Lorem Ipsum ... The param should be changed to something more optimized"},"proposer":"tcro14sh490wk79dltea4udk95k7mw40wmvf77p0l5a"}';
+            const MsgDeposit = cro.gov.MsgSubmitProposal.fromCosmosMsgJSON(json, CroNetwork.Testnet);
+            expect(MsgDeposit.initialDeposit.toCosmosCoins()[0].amount).to.eql('12000000000');
+            expect(MsgDeposit.initialDeposit.toCosmosCoins()[0].denom).to.eql('basetcro');
+
+            expect(MsgDeposit.proposer).to.eql('tcro14sh490wk79dltea4udk95k7mw40wmvf77p0l5a');
+
+            expect(MsgDeposit.content.getEncoded().type_url).to.eql('/cosmos.params.v1beta1.ParameterChangeProposal');
+        });
     });
 });

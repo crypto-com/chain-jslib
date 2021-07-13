@@ -3,6 +3,7 @@ import { cosmos, google } from '../../../../cosmos/v1beta1/codec';
 import { IMsgProposalContent } from '../IMsgProposalContent';
 import { owTextProposalOptions } from '../ow.types';
 import { COSMOS_MSG_TYPEURL } from '../../../common/constants/typeurl';
+import { Network } from '../../../../network/network';
 
 export const textProposal = function () {
     return class TextProposal implements IMsgProposalContent {
@@ -17,6 +18,24 @@ export const textProposal = function () {
 
             this.title = options.title;
             this.description = options.description;
+        }
+
+        /**
+         * Returns an instance of TextProposal
+         * @param {string} msgJsonStr
+         * @param {Network} network
+         * @returns {TextProposal}
+         */
+        public static fromCosmosMsgJSON(msgJsonStr: string, _network: Network): TextProposal {
+            const parsedMsg = JSON.parse(msgJsonStr) as TextProposalRaw;
+            if (parsedMsg['@type'] !== COSMOS_MSG_TYPEURL.gov.TextProposal) {
+                throw new Error(`Expected ${COSMOS_MSG_TYPEURL.gov.TextProposal} but got ${parsedMsg['@type']}`);
+            }
+
+            return new TextProposal({
+                description: parsedMsg.description,
+                title: parsedMsg.title,
+            });
         }
 
         /**
@@ -43,3 +62,9 @@ export type TextProposalOptions = {
     title: string;
     description: string;
 };
+
+interface TextProposalRaw {
+    '@type': string;
+    title: string;
+    description: string;
+}

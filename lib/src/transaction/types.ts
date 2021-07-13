@@ -9,7 +9,9 @@ export type SignerAccount = {
 };
 
 export enum SIGN_MODE {
-    LEGACY_AMINO_JSON = 0,
+    UNSPECIFIED = 0,
+    TEXTUAL = 2,
+    LEGACY_AMINO_JSON = 127,
     DIRECT = 1,
 }
 

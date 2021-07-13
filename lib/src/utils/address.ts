@@ -1,5 +1,7 @@
 import bech32 from 'bech32';
 import { Network } from '../network/network';
+import { Bytes } from './bytes/bytes';
+// import { toBase64 } from '@cosmjs/encoding';
 
 export interface AddressValidationProperties {
     address: string;
@@ -31,6 +33,26 @@ export function validateAddress(addressProps: AddressValidationProperties): bool
             return false;
     }
 }
+export const isValidBech32Address = (addr: string): boolean => {
+    try {
+        bech32.decode(addr);
+        // May be maintain a whitelist Array list of possible prefixes. Such as  [cosmos, cro, tcro] ..etc
+        return true;
+    } catch (error) {
+        return false;
+    }
+};
+
+export const assertAndReturnBech32AddressWordBytes = (addr: string): Bytes => {
+    try {
+        const { words } = bech32.decode(addr);
+        // May be maintain a whitelist Array list of possible prefixes. Such as  [cosmos, cro, tcro] ..etc
+        // TODO: Revisit this when working with IBC or custom network addresses
+        return Bytes.fromUint8Array(new Uint8Array(bech32.fromWords(words)));
+    } catch (error) {
+        throw new Error('Invalid Bech32 address.');
+    }
+};
 
 export class AddressValidator {
     public readonly params: AddressValidationProperties;

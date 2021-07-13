@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import ow from 'ow';
 import { CosmosMsg } from '../cosmosMsg';
 import { Msg } from '../../../cosmos/v1beta1/types/msg';
@@ -6,6 +7,7 @@ import { AddressType, validateAddress } from '../../../utils/address';
 import { owMsgSetWithdrawAddressOptions } from '../ow.types';
 import { COSMOS_MSG_TYPEURL } from '../../common/constants/typeurl';
 import * as legacyAmino from '../../../cosmos/amino';
+import { Network } from '../../../network/network';
 
 export const msgSetWithdrawAddress = function (config: InitConfigurations) {
     return class MsgSetWithdrawAddress implements CosmosMsg {
@@ -50,9 +52,29 @@ export const msgSetWithdrawAddress = function (config: InitConfigurations) {
                 typeUrl: COSMOS_MSG_TYPEURL.distribution.MsgSetWithdrawAddress,
                 value: {
                     delegatorAddress: this.delegatorAddress,
-                    validatorAddress: this.withdrawAddress,
+                    withdrawAddress: this.withdrawAddress,
                 },
             };
+        }
+
+        /**
+         * * Returns an instance of MsgSetWithdrawAddress
+         * @param {string} msgJsonStr
+         * @param {Network} network
+         * @returns {MsgSetWithdrawAddress}
+         */
+        public static fromCosmosMsgJSON(msgJsonStr: string, _network: Network): MsgSetWithdrawAddress {
+            const parsedMsg = JSON.parse(msgJsonStr) as MsgSetWithdrawAddressRaw;
+            if (parsedMsg['@type'] !== COSMOS_MSG_TYPEURL.distribution.MsgSetWithdrawAddress) {
+                throw new Error(
+                    `Expected ${COSMOS_MSG_TYPEURL.distribution.MsgSetWithdrawAddress} but got ${parsedMsg['@type']}`,
+                );
+            }
+
+            return new MsgSetWithdrawAddress({
+                withdrawAddress: parsedMsg.withdraw_address,
+                delegatorAddress: parsedMsg.delegator_address,
+            });
         }
 
         validateAddresses() {
@@ -83,3 +105,9 @@ export type MsgSetWithdrawAddressOptions = {
     delegatorAddress: string;
     withdrawAddress: string;
 };
+
+interface MsgSetWithdrawAddressRaw {
+    '@type': string;
+    delegator_address: string;
+    withdraw_address: string;
+}

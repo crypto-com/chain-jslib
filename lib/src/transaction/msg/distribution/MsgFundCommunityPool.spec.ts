@@ -2,7 +2,7 @@
 import { expect } from 'chai';
 import Big from 'big.js';
 import { fuzzyDescribe } from '../../../test/mocha-fuzzy/suite';
-import { CroSDK } from '../../../core/cro';
+import { CroSDK, CroNetwork } from '../../../core/cro';
 import { Secp256k1KeyPair } from '../../../keypair/secp256k1';
 import { Bytes } from '../../../utils/bytes/bytes';
 import * as legacyAmino from '../../../cosmos/amino';
@@ -70,7 +70,7 @@ describe('Testing MsgFundCommunityPool', function () {
 
         const signedTxHex = signedTx.encode().toHexString();
         expect(signedTxHex).to.be.eql(
-            '0a640a620a312f636f736d6f732e646973747269627574696f6e2e763162657461312e4d736746756e64436f6d6d756e697479506f6f6c122d122b7463726f313635747a63726832796c3833673871657178756567326735677a6775353779336665336b633312580a500a460a1f2f636f736d6f732e63727970746f2e736563703235366b312e5075624b657912230a2103fd0d560b6c4aa1ca16721d039a192867c3457e19dad553edb98e7ba88b159c2712040a020801180a120410c09a0c1a40dea8c5292e72ca736bc189d6214fdb44e45c1ad0cc91314d81e90f2d825124b2331a9aad56c2ba6af63071dc5d7e0a18712e68d473387033346de78f4cfdacf7',
+            '0a760a740a312f636f736d6f732e646973747269627574696f6e2e763162657461312e4d736746756e64436f6d6d756e697479506f6f6c123f0a100a08626173657463726f120431303030122b7463726f313635747a63726832796c3833673871657178756567326735677a6775353779336665336b633312580a500a460a1f2f636f736d6f732e63727970746f2e736563703235366b312e5075624b657912230a2103fd0d560b6c4aa1ca16721d039a192867c3457e19dad553edb98e7ba88b159c2712040a020801180a120410c09a0c1a400c93f8e74991dde45638e3d4366f7607fd9711272d0602f1e2e797d9180d25c30031955522e7ddc380d7ac4435e7f6d01fbea5db685655ba0b04d43b4135bf3d',
         );
     });
 
@@ -101,6 +101,39 @@ describe('Testing MsgFundCommunityPool', function () {
                     amount,
                 });
             }).to.throw('Provided `depositor` address doesnt match network selected');
+        });
+    });
+    describe('fromCosmosJSON', function () {
+        it('should throw Error if the JSON is not a MsgFundCommunityPool', function () {
+            const json =
+            '{ "@type": "/cosmos.bank.v1beta1.MsgCreateValidator", "amount": [{ "denom": "basetcro", "amount": "3478499933290496" }], "from_address": "tcro1x07kkkepfj2hl8etlcuqhej7jj6myqrp48y4hg", "to_address": "tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3" }';
+            expect(() => cro.distribution.MsgFundCommunityPool.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected /cosmos.distribution.v1beta1.MsgFundCommunityPool but got /cosmos.bank.v1beta1.MsgCreateValidator',
+            );
+        });
+
+        it('should throw Error when the `depositor` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.distribution.v1beta1.MsgFundCommunityPool","amount":[{ "denom": "basetcro", "amount": "3478499933290496" }]}';
+            expect(() => cro.distribution.MsgFundCommunityPool.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `depositor` to be of type `string` but received type `undefined` in object `communityPoolOptions`',
+            );
+        });
+        it('should throw Error when the amount field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.distribution.v1beta1.MsgFundCommunityPool","depositor":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3"}';
+            expect(() => cro.distribution.MsgFundCommunityPool.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Invalid amount in the Msg.',
+            );
+        });
+        it('should return the `MsgFundCommunityPool` corresponding to the JSON', function () {
+            const json =
+                '{"@type":"/cosmos.distribution.v1beta1.MsgFundCommunityPool","amount":[{ "denom": "basetcro", "amount": "3478499933290496" }],"depositor":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3"}';
+
+            const msgFundCommPool = cro.distribution.MsgFundCommunityPool.fromCosmosMsgJSON(json, CroNetwork.Testnet);
+            expect(msgFundCommPool.depositor).to.eql('tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3');
+            expect(msgFundCommPool.amount.toCosmosCoin().amount).to.eql('3478499933290496');
+            expect(msgFundCommPool.amount.toCosmosCoin().denom).to.eql('basetcro');
         });
     });
 });

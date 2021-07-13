@@ -2,7 +2,7 @@
 import { expect } from 'chai';
 import Big from 'big.js';
 import { fuzzyDescribe } from '../../../test/mocha-fuzzy/suite';
-import { CroSDK } from '../../../core/cro';
+import { CroSDK, CroNetwork } from '../../../core/cro';
 import { Secp256k1KeyPair } from '../../../keypair/secp256k1';
 import { Bytes } from '../../../utils/bytes/bytes';
 import * as legacyAmino from '../../../cosmos/amino';
@@ -68,7 +68,7 @@ describe('Testing MsgSetWithdrawAddress', function () {
 
         const signedTxHex = signedTx.encode().toHexString();
         expect(signedTxHex).to.be.eql(
-            '0a650a630a322f636f736d6f732e646973747269627574696f6e2e763162657461312e4d7367536574576974686472617741646472657373122d0a2b7463726f313635747a63726832796c3833673871657178756567326735677a6775353779336665336b633312580a500a460a1f2f636f736d6f732e63727970746f2e736563703235366b312e5075624b657912230a2103fd0d560b6c4aa1ca16721d039a192867c3457e19dad553edb98e7ba88b159c2712040a020801180a120410c09a0c1a407a98473a7ffdb8563e0d4adb598e1bff1d16b708d2709d953ca11d8ea53152c93d509c54b8956eaec0fd887654fb6074bd23559126af8501d9643d192f0618bb',
+            '0a93010a90010a322f636f736d6f732e646973747269627574696f6e2e763162657461312e4d7367536574576974686472617741646472657373125a0a2b7463726f313635747a63726832796c3833673871657178756567326735677a6775353779336665336b6333122b7463726f313635747a63726832796c3833673871657178756567326735677a6775353779336665336b633312580a500a460a1f2f636f736d6f732e63727970746f2e736563703235366b312e5075624b657912230a2103fd0d560b6c4aa1ca16721d039a192867c3457e19dad553edb98e7ba88b159c2712040a020801180a120410c09a0c1a401737cd71b6a4263544be64db99c93ed32974c37f8face69b7df860c35cd583873e6f5694f746d5bb7ab546ea461caadba354b3ed7a9a4e12cc46fe163de2bd1d',
         );
     });
 
@@ -108,6 +108,38 @@ describe('Testing MsgSetWithdrawAddress', function () {
                     withdrawAddress: 'cro1xh3dqgljnydpwelzqf265edryrqrq7wzacx2nr',
                 });
             }).to.throw('Provided `withdrawAddress` doesnt match network selected');
+        });
+    });
+    describe('fromCosmosJSON', function () {
+        it('should throw Error if the JSON is not a MsgSetWithdrawAddress', function () {
+            const json =
+                '{ "@type": "/cosmos.bank.v1beta1.MsgCreateValidator", "amount": [{ "denom": "basetcro", "amount": "3478499933290496" }], "from_address": "tcro1x07kkkepfj2hl8etlcuqhej7jj6myqrp48y4hg", "to_address": "tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3" }';
+            expect(() => cro.distribution.MsgSetWithdrawAddress.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected /cosmos.distribution.v1beta1.MsgSetWithdrawAddress but got /cosmos.bank.v1beta1.MsgCreateValidator',
+            );
+        });
+
+        it('should throw Error when the `withdraw_address` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.distribution.v1beta1.MsgSetWithdrawAddress","delegator_address":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3"}';
+            expect(() => cro.distribution.MsgSetWithdrawAddress.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `withdrawAddress` to be of type `string` but received type `undefined` in object `setWithdrawOptions`',
+            );
+        });
+        it('should throw Error when the `delegator_address` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.distribution.v1beta1.MsgSetWithdrawAddress","withdraw_address":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3"}';
+            expect(() => cro.distribution.MsgSetWithdrawAddress.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `delegatorAddress` to be of type `string` but received type `undefined` in object `setWithdrawOptions`',
+            );
+        });
+        it('should return the `MsgSetWithdrawAddress` corresponding to the JSON', function () {
+            const json =
+                '{"@type":"/cosmos.distribution.v1beta1.MsgSetWithdrawAddress","delegator_address":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3","withdraw_address":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3"}';
+
+            const MsgSetWithdrawAddress = cro.distribution.MsgSetWithdrawAddress.fromCosmosMsgJSON(json, CroNetwork.Testnet);
+            expect(MsgSetWithdrawAddress.withdrawAddress).to.eql('tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3');
+            expect(MsgSetWithdrawAddress.delegatorAddress).to.eql('tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3');
         });
     });
 });

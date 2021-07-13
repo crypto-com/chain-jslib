@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import 'mocha';
 import { expect } from 'chai';
 import Big from 'big.js';
@@ -6,7 +7,7 @@ import { Msg } from '../../../cosmos/v1beta1/types/msg';
 import { Secp256k1KeyPair } from '../../../keypair/secp256k1';
 import { Bytes } from '../../../utils/bytes/bytes';
 import { Units } from '../../../coin/coin';
-import { CroSDK } from '../../../core/cro';
+import { CroSDK, CroNetwork } from '../../../core/cro';
 import { protoEncodeEd25519PubKey } from './MsgCreateValidator';
 
 const cro = CroSDK({
@@ -210,5 +211,89 @@ describe('Testing MsgCreateValidator', function () {
         expect(() => new cro.staking.MsgCreateValidator(params3)).to.throw(
             'Invalid checksum for tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenr',
         );
+    });
+    describe('fromCosmosJSON', function () {
+        it('should throw Error if the JSON is not a MsgCreateValidator', function () {
+            const json =
+                '{ "@type": "/cosmos.staking.v1beta1.MsgEditValidator", "amount": [{ "denom": "basetcro", "amount": "3478499933290496" }], "from_address": "tcro1x07kkkepfj2hl8etlcuqhej7jj6myqrp48y4hg", "to_address": "tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3" }';
+            expect(() => cro.staking.MsgCreateValidator.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected /cosmos.staking.v1beta1.MsgCreateValidator but got /cosmos.staking.v1beta1.MsgEditValidator',
+            );
+        });
+
+        it('should throw Error when the `delegator_address` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.staking.v1beta1.MsgCreateValidator","description":{"moniker":"hiteshTest","identity":"","website":"","security_contact":"hitesh.goel@crypto.com","details":""},"commission":{"rate":"0.100000000000000000","max_rate":"0.200000000000000000","max_change_rate":"0.010000000000000000"},"min_self_delegation":"1","validator_address":"tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr","pubkey":{"@type":"/cosmos.crypto.ed25519.PubKey","key":"EHT8l6A+bKFLLcyuh88Se+eN4mDkfWeUdE7gv5E97a8="},"value":{"denom":"basetcro","amount":"50000000000000"}}';
+
+            expect(() => cro.staking.MsgCreateValidator.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `delegatorAddress` to be of type `string` but received type `undefined` in object `options`',
+            );
+        });
+
+        it('should throw Error when the `minSelfDelegation` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.staking.v1beta1.MsgCreateValidator","description":{"moniker":"hiteshTest","identity":"","website":"","security_contact":"hitesh.goel@crypto.com","details":""},"commission":{"rate":"0.100000000000000000","max_rate":"0.200000000000000000","max_change_rate":"0.010000000000000000"},"delegator_address":"tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q","validator_address":"tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr","pubkey":{"@type":"/cosmos.crypto.ed25519.PubKey","key":"EHT8l6A+bKFLLcyuh88Se+eN4mDkfWeUdE7gv5E97a8="},"value":{"denom":"basetcro","amount":"50000000000000"}}';
+
+            expect(() => cro.staking.MsgCreateValidator.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `minSelfDelegation` to be of type `string` but received type `undefined` in object `options`',
+            );
+        });
+        it('should throw Error when the `validator_address` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.staking.v1beta1.MsgCreateValidator","description":{"moniker":"hiteshTest","identity":"","website":"","security_contact":"hitesh.goel@crypto.com","details":""},"commission":{"rate":"0.100000000000000000","max_rate":"0.200000000000000000","max_change_rate":"0.010000000000000000"},"min_self_delegation":"1","delegator_address":"tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q","pubkey":{"@type":"/cosmos.crypto.ed25519.PubKey","key":"EHT8l6A+bKFLLcyuh88Se+eN4mDkfWeUdE7gv5E97a8="},"value":{"denom":"basetcro","amount":"50000000000000"}}';
+
+            expect(() => cro.staking.MsgCreateValidator.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `validatorAddress` to be of type `string` but received type `undefined` in object `options`',
+            );
+        });
+        it('should throw Error when the `value` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.staking.v1beta1.MsgCreateValidator","description":{"moniker":"hiteshTest","identity":"","website":"","security_contact":"hitesh.goel@crypto.com","details":""},"commission":{"rate":"0.100000000000000000","max_rate":"0.200000000000000000","max_change_rate":"0.010000000000000000"},"min_self_delegation":"1","delegator_address":"tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q","validator_address":"tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr","pubkey":{"@type":"/cosmos.crypto.ed25519.PubKey","key":"EHT8l6A+bKFLLcyuh88Se+eN4mDkfWeUdE7gv5E97a8="}}';
+            expect(() => cro.staking.MsgCreateValidator.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Invalid value in the Msg.',
+            );
+        });
+
+        it('should throw Error when the `pubkey` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.staking.v1beta1.MsgCreateValidator","description":{"moniker":"hiteshTest","identity":"","website":"","security_contact":"hitesh.goel@crypto.com","details":""},"commission":{"rate":"0.100000000000000000","max_rate":"0.200000000000000000","max_change_rate":"0.010000000000000000"},"min_self_delegation":"1","delegator_address":"tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q","validator_address":"tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr","value":{"denom":"basetcro","amount":"50000000000000"}}';
+            expect(() => cro.staking.MsgCreateValidator.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Invalid pubkey in the Msg.',
+            );
+        });
+        it('should throw Error when the `commission` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.staking.v1beta1.MsgCreateValidator","description":{"moniker":"hiteshTest","identity":"","website":"","security_contact":"hitesh.goel@crypto.com","details":""},"min_self_delegation":"1","delegator_address":"tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q","validator_address":"tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr","pubkey":{"@type":"/cosmos.crypto.ed25519.PubKey","key":"EHT8l6A+bKFLLcyuh88Se+eN4mDkfWeUdE7gv5E97a8="},"value":{"denom":"basetcro","amount":"50000000000000"}}';
+            expect(() => cro.staking.MsgCreateValidator.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Invalid commission in the Msg.',
+            );
+        });
+        it('should throw Error when the `description` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.staking.v1beta1.MsgCreateValidator","commission":{"rate":"0.100000000000000000","max_rate":"0.200000000000000000","max_change_rate":"0.010000000000000000"},"min_self_delegation":"1","delegator_address":"tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q","validator_address":"tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr","pubkey":{"@type":"/cosmos.crypto.ed25519.PubKey","key":"EHT8l6A+bKFLLcyuh88Se+eN4mDkfWeUdE7gv5E97a8="},"value":{"denom":"basetcro","amount":"50000000000000"}}';
+            expect(() => cro.staking.MsgCreateValidator.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Invalid description in the Msg.',
+            );
+        });
+
+        it('should return the MsgCreateValidator corresponding to the JSON', function () {
+            const json =
+                '{"@type":"/cosmos.staking.v1beta1.MsgCreateValidator","description":{"moniker":"hiteshTest","identity":"","website":"","security_contact":"hitesh.goel@crypto.com","details":""},"commission":{"rate":"0.100000000000000000","max_rate":"0.200000000000000000","max_change_rate":"0.010000000000000000"},"min_self_delegation":"1","delegator_address":"tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q","validator_address":"tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr","pubkey":{"@type":"/cosmos.crypto.ed25519.PubKey","key":"EHT8l6A+bKFLLcyuh88Se+eN4mDkfWeUdE7gv5E97a8="},"value":{"denom":"basetcro","amount":"50000000000000"}}';
+
+            const MsgCreateValidator = cro.staking.MsgCreateValidator.fromCosmosMsgJSON(json, CroNetwork.Testnet);
+            expect(MsgCreateValidator.validatorAddress).to.eql('tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr');
+            expect(MsgCreateValidator.delegatorAddress).to.eql('tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q');
+            expect(MsgCreateValidator.minSelfDelegation).to.eql('1');
+
+            expect(MsgCreateValidator.value.toCosmosCoin().amount).to.eql('50000000000000');
+            expect(MsgCreateValidator.value.toCosmosCoin().denom).to.eql('basetcro');
+
+            expect(MsgCreateValidator.commission.rate).to.eql('0.100000000000000000');
+            expect(MsgCreateValidator.commission.maxRate).to.eql('0.200000000000000000');
+            expect(MsgCreateValidator.commission.maxChangeRate).to.eql('0.010000000000000000');
+
+            expect(MsgCreateValidator.description.securityContact).to.eql('hitesh.goel@crypto.com');
+            expect(MsgCreateValidator.description.moniker).to.eql('hiteshTest');
+        });
     });
 });

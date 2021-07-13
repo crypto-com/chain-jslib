@@ -3,7 +3,7 @@ import { expect } from 'chai';
 
 import Big from 'big.js';
 import { Network } from '../../../../network/network';
-import { CroSDK } from '../../../../core/cro';
+import { CroSDK, CroNetwork } from '../../../../core/cro';
 import { Units } from '../../../../coin/coin';
 import { fuzzyDescribe } from '../../../../test/mocha-fuzzy/suite';
 import { HDKey } from '../../../../hdkey/hdkey';
@@ -89,5 +89,24 @@ describe('Testing TextProposal and its content types', function () {
         expect(signedTxHex).to.be.eql(
             '0ae0010add010a252f636f736d6f732e676f762e763162657461312e4d73675375626d697450726f706f73616c12b3010a6b0a202f636f736d6f732e676f762e763162657461312e5465787450726f706f73616c12470a13546578742050726f706f73616c205469746c6512304c6f72656d20497073756d202e2e2e20436865636b696e672063616e63656c20736f667477617265207570677261646512170a08626173657463726f120b31323030303030303030301a2b7463726f31347368343930776b3739646c7465613475646b39356b376d773430776d7666373770306c356112580a500a460a1f2f636f736d6f732e63727970746f2e736563703235366b312e5075624b657912230a210280c5e37a2bc3e68cc7c4aac78eac8c769cf58ce269ecd4307427aa16c2ba05a412040a0208011800120410c09a0c1a40e3fe5009273f539d4f6e37b55136ce776855e45da95800a1e23e8fffd83dc3f96874f6d3ec116a19b9b6e2e19031f11ae533e0de26edec1eccca57fd6f1e0bef',
         );
+    });
+    describe('fromCosmosJSON', function () {
+        it('should throw Error if the JSON is not a TextProposal', function () {
+            const json =
+                '{ "@type": "/cosmos.bank.v1beta1.MsgCreateValidator", "amount": [{ "denom": "basetcro", "amount": "3478499933290496" }], "from_address": "tcro1x07kkkepfj2hl8etlcuqhej7jj6myqrp48y4hg", "to_address": "tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3" }';
+            expect(() => cro.gov.proposal.TextProposal.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected /cosmos.gov.v1beta1.TextProposal but got /cosmos.bank.v1beta1.MsgCreateValidator',
+            );
+        });
+
+        it('should return the TextProposal corresponding to the JSON', function () {
+            const json =
+                '{"@type":"/cosmos.gov.v1beta1.TextProposal","title": "Text Proposal Title", "description": "Lorem Ipsum ... Checking text proposal"}';
+            const TextProposal = cro.gov.proposal.TextProposal.fromCosmosMsgJSON(json, CroNetwork.Testnet);
+
+            expect(TextProposal.title).to.eql('Text Proposal Title');
+
+            expect(TextProposal.description).to.eql('Lorem Ipsum ... Checking text proposal');
+        });
     });
 });

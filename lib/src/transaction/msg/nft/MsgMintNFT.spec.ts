@@ -8,7 +8,7 @@ import { fuzzyDescribe } from '../../../test/mocha-fuzzy/suite';
 import { Msg } from '../../../cosmos/v1beta1/types/msg';
 import { Secp256k1KeyPair } from '../../../keypair/secp256k1';
 import { Bytes } from '../../../utils/bytes/bytes';
-import { CroSDK } from '../../../core/cro';
+import { CroSDK, CroNetwork } from '../../../core/cro';
 import { COSMOS_MSG_TYPEURL } from '../../common/constants/typeurl';
 import * as legacyAmino from '../../../cosmos/amino';
 
@@ -355,5 +355,77 @@ describe('Testing MsgMintNFT', function () {
         };
 
         expect(() => new cro.nft.MsgMintNFT(params2)).to.throw('Provided `recipient` does not match network selected');
+    });
+    describe('fromCosmosJSON', function () {
+        it('should throw Error if the JSON is not a MsgMintNFT', function () {
+            const json =
+                '{ "@type": "/cosmos.bank.v1beta1.MsgCreateValidator", "amount": [{ "denom": "basetcro", "amount": "3478499933290496" }], "from_address": "tcro1x07kkkepfj2hl8etlcuqhej7jj6myqrp48y4hg", "to_address": "tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3" }';
+            expect(() => cro.nft.MsgMintNFT.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected /chainmain.nft.v1.MsgMintNFT but got /cosmos.bank.v1beta1.MsgCreateValidator',
+            );
+        });
+        it('should throw Error when the `id` field is missing', function () {
+            const json =
+                '{"@type":"/chainmain.nft.v1.MsgMintNFT","denom_id":"basetcro","name":"nft_name","uri":"https://someuri","data":"some_data_nft","sender":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3","recipient":"tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q"}';
+            expect(() => cro.nft.MsgMintNFT.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `id` to be of type `string` but received type `undefined` in object `options`',
+            );
+        });
+        it('should throw Error when the `name` or `denom_id` field is missing', function () {
+            // name missing
+            const json =
+                '{"@type":"/chainmain.nft.v1.MsgMintNFT","id":"alphanumericid1234","denom_id":"basetcro","uri":"https://someuri","data":"some_data_nft","sender":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3","recipient":"tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q"}';
+            expect(() => cro.nft.MsgMintNFT.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `name` to be of type `string` but received type `undefined` in object `options`',
+            );
+
+            // denom_id missing
+            const json1 =
+                '{"@type":"/chainmain.nft.v1.MsgMintNFT","id":"alphanumericid1234","name":"nft_name","uri":"https://someuri","data":"some_data_nft","sender":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3","recipient":"tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q"}';
+            expect(() => cro.nft.MsgMintNFT.fromCosmosMsgJSON(json1, CroNetwork.Testnet)).to.throw(
+                'Expected property `denomId` to be of type `string` but received type `undefined` in object `options`',
+            );
+        });
+        it('should throw Error when the `data` or `uri` field is missing', function () {
+            // data missing
+            const json =
+                '{"@type":"/chainmain.nft.v1.MsgMintNFT","id":"alphanumericid1234","denom_id":"basetcro","name":"nft_name","uri":"https://someuri","sender":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3","recipient":"tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q"}';
+            expect(() => cro.nft.MsgMintNFT.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `data` to be of type `string` but received type `undefined` in object `options`',
+            );
+
+            // uri missing
+            const json1 =
+                '{"@type":"/chainmain.nft.v1.MsgMintNFT","id":"alphanumericid1234","denom_id":"basetcro","name":"nft_name","data":"some_data_nft","sender":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3","recipient":"tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q"}';
+            expect(() => cro.nft.MsgMintNFT.fromCosmosMsgJSON(json1, CroNetwork.Testnet)).to.throw(
+                'Expected property `uri` to be of type `string` but received type `undefined` in object `options`',
+            );
+        });
+        it('should throw Error when the `sender` or `recipient` field is missing', function () {
+            // sender missing
+            const json =
+                '{"@type":"/chainmain.nft.v1.MsgMintNFT","id":"alphanumericid1234","denom_id":"basetcro","name":"nft_name","uri":"https://someuri","data":"some_data_nft","recipient":"tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q"}';
+            expect(() => cro.nft.MsgMintNFT.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `sender` to be of type `string` but received type `undefined` in object `options`',
+            );
+
+            // recipient missing
+            const json1 =
+                '{"@type":"/chainmain.nft.v1.MsgMintNFT","id":"alphanumericid1234","denom_id":"basetcro","name":"nft_name","uri":"https://someuri","data":"some_data_nft","sender":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3"}';
+            expect(() => cro.nft.MsgMintNFT.fromCosmosMsgJSON(json1, CroNetwork.Testnet)).to.throw(
+                'Expected property `recipient` to be of type `string` but received type `undefined` in object `options`',
+            );
+        });
+        it('should return the MsgMintNFT corresponding to the JSON', function () {
+            const json =
+                '{"@type":"/chainmain.nft.v1.MsgMintNFT","id":"alphanumericid1234","denom_id":"basetcro","name":"nft_name","uri":"https://someuri","data":"some_data_nft","sender":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3","recipient":"tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q"}';
+            const MsgMintNFT = cro.nft.MsgMintNFT.fromCosmosMsgJSON(json, CroNetwork.Testnet);
+            expect(MsgMintNFT.id).to.eql('alphanumericid1234');
+            expect(MsgMintNFT.denomId).to.eql('basetcro');
+            expect(MsgMintNFT.name.toString()).to.eql('nft_name');
+            expect(MsgMintNFT.uri.toString()).to.eql('https://someuri');
+            expect(MsgMintNFT.sender.toString()).to.eql('tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3');
+            expect(MsgMintNFT.recipient.toString()).to.eql('tcro1j7pej8kplem4wt50p4hfvndhuw5jprxxn5625q');
+        });
     });
 });

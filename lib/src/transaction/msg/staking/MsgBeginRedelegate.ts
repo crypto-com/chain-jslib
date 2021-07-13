@@ -1,12 +1,27 @@
+/* eslint-disable camelcase */
 import ow from 'ow';
 import { Msg } from '../../../cosmos/v1beta1/types/msg';
 import { CosmosMsg } from '../cosmosMsg';
 import { ICoin } from '../../../coin/coin';
 import { owMsgBeginRedelgateOptions } from '../ow.types';
-import { InitConfigurations } from '../../../core/cro';
+import { InitConfigurations, CroSDK } from '../../../core/cro';
 import { validateAddress, AddressType } from '../../../utils/address';
 import { COSMOS_MSG_TYPEURL } from '../../common/constants/typeurl';
 import * as legacyAmino from '../../../cosmos/amino';
+import { Network } from '../../../network/network';
+
+export interface MsgBeginRedelegateRaw {
+    '@type': string;
+    delegator_address: string;
+    validator_src_address: string;
+    validator_dst_address: string;
+    amount: Amount;
+}
+
+export interface Amount {
+    denom: string;
+    amount: string;
+}
 
 export const msgBeginRedelegate = function (config: InitConfigurations) {
     return class MsgBeginRedelegate implements CosmosMsg {
@@ -35,6 +50,30 @@ export const msgBeginRedelegate = function (config: InitConfigurations) {
             this.validatorSrcAddress = options.validatorSrcAddress;
             this.amount = options.amount;
             this.validateAddresses();
+        }
+
+        /**
+         * Returns an instance of MsgBeginRedelegate
+         * @param {string} msgJsonStr
+         * @param {Network} network
+         * @returns {MsgBeginRedelegate}
+         */
+        public static fromCosmosMsgJSON(msgJsonStr: string, network: Network): MsgBeginRedelegate {
+            const parsedMsg = JSON.parse(msgJsonStr) as MsgBeginRedelegateRaw;
+            const cro = CroSDK({ network });
+            if (parsedMsg['@type'] !== COSMOS_MSG_TYPEURL.MsgBeginRedelegate) {
+                throw new Error(`Expected ${COSMOS_MSG_TYPEURL.MsgBeginRedelegate} but got ${parsedMsg['@type']}`);
+            }
+            if (!parsedMsg.amount || Object.keys(parsedMsg.amount).length !== 2) {
+                throw new Error('Invalid amount in the Msg.');
+            }
+
+            return new MsgBeginRedelegate({
+                delegatorAddress: parsedMsg.delegator_address,
+                validatorDstAddress: parsedMsg.validator_dst_address,
+                validatorSrcAddress: parsedMsg.validator_src_address,
+                amount: cro.Coin.fromCustomAmountDenom(parsedMsg.amount.amount, parsedMsg.amount.denom),
+            });
         }
 
         // eslint-disable-next-line class-methods-use-this

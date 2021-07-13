@@ -5,7 +5,7 @@ import Long from 'long';
 
 import { fuzzyDescribe } from '../../../test/mocha-fuzzy/suite';
 import { VoteOption } from './MsgVote';
-import { CroSDK } from '../../../core/cro';
+import { CroSDK, CroNetwork } from '../../../core/cro';
 import { Msg } from '../../../cosmos/v1beta1/types/msg';
 import { Secp256k1KeyPair } from '../../../keypair/secp256k1';
 import { HDKey } from '../../../hdkey/hdkey';
@@ -180,5 +180,43 @@ describe('Testing MsgVote', function () {
             },
         };
         expect(msgVote.toRawAminoMsg()).to.eqls(rawMsg);
+    });
+
+    describe('fromCosmosJSON', function () {
+        it('should throw Error if the JSON is not a MsgVote', function () {
+            const json =
+                '{ "@type": "/cosmos.bank.v1beta1.MsgCreateValidator", "amount": [{ "denom": "basetcro", "amount": "3478499933290496" }], "from_address": "tcro1x07kkkepfj2hl8etlcuqhej7jj6myqrp48y4hg", "to_address": "tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3" }';
+            expect(() => cro.gov.MsgVote.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected /cosmos.gov.v1beta1.MsgVote but got /cosmos.bank.v1beta1.MsgCreateValidator',
+            );
+        });
+        it('should throw Error when the `proposal_id` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.gov.v1beta1.MsgVote","voter":"tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3","option":2}';
+            expect(() => cro.gov.MsgVote.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Invalid `proposal_id` in JSON.',
+            );
+        });
+        it('should throw Error when the `voter` field is missing', function () {
+            const json = '{"@type":"/cosmos.gov.v1beta1.MsgVote","proposal_id":"1244000","option":2}';
+            expect(() => cro.gov.MsgVote.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `voter` to be of type `string` but received type `undefined` in object `options`',
+            );
+        });
+        it('should throw Error when the `option` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.gov.v1beta1.MsgVote","proposal_id":"1244000","voter":"tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3"}';
+            expect(() => cro.gov.MsgVote.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `option` to be of type `number` but received type `undefined` in object `options`',
+            );
+        });
+        it('should return the MsgVote corresponding to the JSON', function () {
+            const json =
+                '{"@type":"/cosmos.gov.v1beta1.MsgVote","proposal_id":"1244000","voter":"tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3","option":2}';
+            const MsgVote = cro.gov.MsgVote.fromCosmosMsgJSON(json, CroNetwork.Testnet);
+            expect(MsgVote.voter).to.eql('tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3');
+            expect((MsgVote.proposalId as Big).toString()).to.eql('1244000');
+            expect(MsgVote.option).to.eql(VoteOption.VOTE_OPTION_ABSTAIN);
+        });
     });
 });

@@ -18,7 +18,7 @@ export type TxBody = {
 export type AuthInfo = {
     signerInfos: SignerInfo[];
     fee: {
-        amount?: ICoin;
+        amount?: ICoin[];
         gasLimit?: Big;
         payer?: string;
         granter?: string;

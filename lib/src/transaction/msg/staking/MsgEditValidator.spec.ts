@@ -5,7 +5,7 @@ import { fuzzyDescribe } from '../../../test/mocha-fuzzy/suite';
 import { Msg } from '../../../cosmos/v1beta1/types/msg';
 import { Secp256k1KeyPair } from '../../../keypair/secp256k1';
 import { Bytes } from '../../../utils/bytes/bytes';
-import { CroSDK } from '../../../core/cro';
+import { CroSDK, CroNetwork } from '../../../core/cro';
 
 const cro = CroSDK({
     network: {
@@ -172,5 +172,44 @@ describe('Testing MsgEditValidator', function () {
         expect(() => new cro.staking.MsgEditValidator(params2)).to.throw(
             'Invalid checksum for tcrocncl16mmzexp3zqfpgqtnn927m5ph560qgxrs52a3w',
         );
+    });
+    describe('fromCosmosJSON', function () {
+        it('should throw Error if the JSON is not a MsgEditValidator', function () {
+            const json =
+                '{ "@type": "/cosmos.bank.v1beta1.MsgCreateValidator", "amount": [{ "denom": "basetcro", "amount": "3478499933290496" }], "from_address": "tcro1x07kkkepfj2hl8etlcuqhej7jj6myqrp48y4hg", "to_address": "tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3" }';
+            expect(() => cro.staking.MsgEditValidator.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected /cosmos.staking.v1beta1.MsgEditValidator but got /cosmos.bank.v1beta1.MsgCreateValidator',
+            );
+        });
+
+        it('should NOT throw Error when the `commission_rate` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.staking.v1beta1.MsgEditValidator","description":{"moniker":"hiteshTest","identity":"","website":"","security_contact":"hitesh.goel@crypto.com","details":""},"validator_address":"tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr","min_self_delegation":"1"}';
+            expect(() => cro.staking.MsgEditValidator.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.not.throw(
+                'Expected `commissionRate` to be of type `null` but received type `undefined` in object `options`',
+            );
+            const msgEdit = cro.staking.MsgEditValidator.fromCosmosMsgJSON(json, CroNetwork.Testnet);
+            expect(msgEdit.commissionRate).to.be.null;
+        });
+        it('should NOT throw Error when the `min_self_delegation` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.staking.v1beta1.MsgEditValidator","description":{"moniker":"hiteshTest","identity":"","website":"","security_contact":"hitesh.goel@crypto.com","details":""},"validator_address":"tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr","commission_rate":"0.100000000000000000"}';
+            expect(() => cro.staking.MsgEditValidator.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.not.throw(
+                'Expected `minSelfDelegation` to be of type `null` but received type `undefined` in object `options`',
+            );
+            const msgEdit = cro.staking.MsgEditValidator.fromCosmosMsgJSON(json, CroNetwork.Testnet);
+            expect(msgEdit.minSelfDelegation).to.be.null;
+        });
+
+        it('should return the MsgEditValidator corresponding to the JSON', function () {
+            const json =
+                '{"@type":"/cosmos.staking.v1beta1.MsgEditValidator","description":{"moniker":"hiteshTest","identity":"","website":"","security_contact":"hitesh.goel@crypto.com","details":""},"validator_address":"tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr","commission_rate":"0.100000000000000000","min_self_delegation":"1"}';
+            const MsgEditValidator = cro.staking.MsgEditValidator.fromCosmosMsgJSON(json, CroNetwork.Testnet);
+            expect(MsgEditValidator.validatorAddress).to.eql('tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr');
+            expect(MsgEditValidator.minSelfDelegation).to.eql('1');
+            expect(MsgEditValidator.commissionRate).to.eql('0.100000000000000000');
+            expect(MsgEditValidator.description.securityContact).to.eql('hitesh.goel@crypto.com');
+            expect(MsgEditValidator.description.moniker).to.eql('hiteshTest');
+        });
     });
 });

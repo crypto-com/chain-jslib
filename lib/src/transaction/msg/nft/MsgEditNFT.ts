@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import ow from 'ow';
 import { Msg } from '../../../cosmos/v1beta1/types/msg';
 import { owMsgEditNFTOptions } from '../ow.types';
@@ -6,6 +7,7 @@ import { AddressType, validateAddress } from '../../../utils/address';
 import { CosmosMsg } from '../cosmosMsg';
 import { COSMOS_MSG_TYPEURL } from '../../common/constants/typeurl';
 import * as legacyAmino from '../../../cosmos/amino';
+import { Network } from '../../../network/network';
 
 export const msgEditNFT = function (config: InitConfigurations) {
     return class MsgEditNFT implements CosmosMsg {
@@ -79,6 +81,28 @@ export const msgEditNFT = function (config: InitConfigurations) {
             } as legacyAmino.MsgEditNFT;
         }
 
+        /**
+         * Returns an instance of MsgEditNFT
+         * @param {string} msgJsonStr
+         * @param {Network} network
+         * @returns {MsgEditNFT}
+         */
+        public static fromCosmosMsgJSON(msgJsonStr: string, _network: Network): MsgEditNFT {
+            const parsedMsg = JSON.parse(msgJsonStr) as MsgEditNFTRaw;
+            if (parsedMsg['@type'] !== COSMOS_MSG_TYPEURL.nft.MsgEditNFT) {
+                throw new Error(`Expected ${COSMOS_MSG_TYPEURL.nft.MsgEditNFT} but got ${parsedMsg['@type']}`);
+            }
+
+            return new MsgEditNFT({
+                id: parsedMsg.id,
+                name: parsedMsg.name,
+                sender: parsedMsg.sender,
+                denomId: parsedMsg.denom_id,
+                uri: parsedMsg.uri,
+                data: parsedMsg.data,
+            });
+        }
+
         validateAddresses() {
             if (
                 !validateAddress({
@@ -101,3 +125,12 @@ export type MsgEditNFTOptions = {
     data: string;
     sender: string;
 };
+export interface MsgEditNFTRaw {
+    '@type': string;
+    id: string;
+    denom_id: string;
+    name: string;
+    uri: string;
+    data: string;
+    sender: string;
+}

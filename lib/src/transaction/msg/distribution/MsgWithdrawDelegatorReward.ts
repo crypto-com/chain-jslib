@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import ow from 'ow';
 import { CosmosMsg } from '../cosmosMsg';
 import { Msg } from '../../../cosmos/v1beta1/types/msg';
@@ -6,6 +7,7 @@ import { AddressType, validateAddress } from '../../../utils/address';
 import { owMsgWithdrawDelegatorRewardOptions } from '../ow.types';
 import { COSMOS_MSG_TYPEURL } from '../../common/constants/typeurl';
 import * as legacyAmino from '../../../cosmos/amino';
+import { Network } from '../../../network/network';
 
 export const msgWithdrawDelegateReward = function (config: InitConfigurations) {
     return class MsgWithdrawDelegatorReward implements CosmosMsg {
@@ -55,6 +57,26 @@ export const msgWithdrawDelegateReward = function (config: InitConfigurations) {
             };
         }
 
+        /**
+         * * Returns an instance of MsgWithdrawDelegatorReward
+         * @param {string} msgJsonStr
+         * @param {Network} network
+         * @returns {MsgWithdrawDelegatorReward}
+         */
+        public static fromCosmosMsgJSON(msgJsonStr: string, _network: Network): MsgWithdrawDelegatorReward {
+            const parsedMsg = JSON.parse(msgJsonStr) as MsgWithdrawDelegatorRewardRaw;
+            if (parsedMsg['@type'] !== COSMOS_MSG_TYPEURL.MsgWithdrawDelegatorReward) {
+                throw new Error(
+                    `Expected ${COSMOS_MSG_TYPEURL.MsgWithdrawDelegatorReward} but got ${parsedMsg['@type']}`,
+                );
+            }
+
+            return new MsgWithdrawDelegatorReward({
+                validatorAddress: parsedMsg.validator_address,
+                delegatorAddress: parsedMsg.delegator_address,
+            });
+        }
+
         validateAddresses() {
             if (
                 !validateAddress({
@@ -83,3 +105,9 @@ export type MsgWithdrawDelegatorRewardOptions = {
     delegatorAddress: string;
     validatorAddress: string;
 };
+
+interface MsgWithdrawDelegatorRewardRaw {
+    '@type': string;
+    delegator_address: string;
+    validator_address: string;
+}

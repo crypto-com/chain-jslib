@@ -9,6 +9,7 @@ import { Bytes } from '../../../utils/bytes/bytes';
 import { Units } from '../../../coin/coin';
 import { CroSDK } from '../../../core/cro';
 import * as legacyAmino from '../../../cosmos/amino';
+import { CroNetwork } from '../../..';
 
 const cro = CroSDK({
     network: {
@@ -157,6 +158,46 @@ describe('Testing MsgUndelegate (Unbonding)', function () {
             };
 
             expect(MsgUndelegate.toRawAminoMsg()).to.eqls(rawMsg);
+        });
+    });
+    describe('fromCosmosJSON', function () {
+        it('should throw Error if the JSON is not a MsgUndelegate', function () {
+            const json =
+                '{ "@type": "/cosmos.bank.v1beta1.MsgCreateValidator", "amount": [{ "denom": "basetcro", "amount": "3478499933290496" }], "from_address": "tcro1x07kkkepfj2hl8etlcuqhej7jj6myqrp48y4hg", "to_address": "tcro184lta2lsyu47vwyp2e8zmtca3k5yq85p6c4vp3" }';
+            expect(() => cro.staking.MsgUndelegate.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected /cosmos.staking.v1beta1.MsgUndelegate but got /cosmos.bank.v1beta1.MsgCreateValidator',
+            );
+        });
+        it('should throw Error when the `validator_address` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.staking.v1beta1.MsgUndelegate","delegator_address":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3","amount":{"denom":"basetcro","amount":"1200050000000000"}}';
+            expect(() => cro.staking.MsgUndelegate.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `validatorAddress` to be of type `string` but received type `undefined` in object `options`',
+            );
+        });
+
+        it('should throw Error when the `delegator_address` field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.staking.v1beta1.MsgUndelegate","validator_address":"tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr","amount":{"denom":"basetcro","amount":"1200050000000000"}}';
+            expect(() => cro.staking.MsgUndelegate.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Expected property `delegatorAddress` to be of type `string` but received type `undefined` in object `options`',
+            );
+        });
+        it('should throw Error when the amount field is missing', function () {
+            const json =
+                '{"@type":"/cosmos.staking.v1beta1.MsgUndelegate","delegator_address":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3","validator_address":"tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr"}';
+            expect(() => cro.staking.MsgUndelegate.fromCosmosMsgJSON(json, CroNetwork.Testnet)).to.throw(
+                'Invalid amount in the Msg.',
+            );
+        });
+        it('should return the MsgUndelegate corresponding to the JSON', function () {
+            const json =
+                '{"@type":"/cosmos.staking.v1beta1.MsgUndelegate","delegator_address":"tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3","validator_address":"tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr","amount":{"denom":"basetcro","amount":"1200050000000000"}}';
+            const MsgUndelegate = cro.staking.MsgUndelegate.fromCosmosMsgJSON(json, CroNetwork.Testnet);
+            expect(MsgUndelegate.validatorAddress).to.eql('tcrocncl1j7pej8kplem4wt50p4hfvndhuw5jprxxxtenvr');
+            expect(MsgUndelegate.delegatorAddress).to.eql('tcro165tzcrh2yl83g8qeqxueg2g5gzgu57y3fe3kc3');
+            expect(MsgUndelegate.amount.toCosmosCoin().amount).to.eql('1200050000000000');
+            expect(MsgUndelegate.amount.toCosmosCoin().denom).to.eql('basetcro');
         });
     });
 });
